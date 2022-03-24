@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+        table {
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        </style>
+    </head>
+    <body>
+        <div style="width: 90%;">
+            <div style="text-align: center; padding-left: 50px;">     
+                <br><br>      
+                <h3>Block Report</h3>
+                Unit: <%=unit.unit%> <br>
+                Filters <br>
+                Yard: <%= query.yard%>, 
+                Availability: <%= query.fa%>, 
+                Type: <%= query.block_type%> , 
+                Area: <%= query.gt%> | <%= query.lt%>, 
+                L: <%= query.l_gt%> | <%= query.l_lt%>, 
+                H: <%= query.h_gt%> | <%= query.h_lt%>, 
+                W: <%= query.w_gt%> | <%= query.w_lt%>, 
+                Date: <%= query.g_date%> - <%= query.l_date%>, 
+                <table style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th colspan="11">Block Stock at <%= yard %></th>
+                            <th colspan="3"><%=date%></th>
+                        </tr>
+                        <tr>
+                            <th>Sr. no.</th>
+                            <th>Date</th>
+                            <th>Block no.</th>
+                            <th>L <%=unit.unit%></th>
+                            <th>H <%=unit.unit%></th>
+                            <th>W <%=unit.unit%></th>
+                            <th>Volume(CBM)</th>
+                            <th>Weight</th>
+                            <th>Status</th>
+                            <th>Yard</th>
+                            <th>Type</th>
+                            <th>Shade</th>
+                            <th>Grade</th>
+                            <th>Remark</th>
+                        </tr>
+                    </thead>
+                <% if (blocks.length > 0) { %>
+                    <% let cnt=0 %>
+                    <% blocks.forEach(b => {%>
+                       <tr>
+                           <% cnt+=1 %>
+                           <td><%= cnt %></td>
+                           <td><%= b.date %></td>
+                           <td><%= b.is_child?b.block_no.split('zzz000')[0]+' - '+((b.block_no.split('zzz000')[1])) : b.block_no %></td>
+                           <td><%= b.dim_1?(b.dim_1/unit.factor).toFixed(2):'' %></td>
+                           <td><%= b.dim_2?(b.dim_2/unit.factor).toFixed(2):'' %></td>
+                           <td><%= b.dim_3?(b.dim_3/unit.factor).toFixed(2):'' %></td>
+                           <td><%= (b.dim_1 * b.dim_2 * b.dim_3*0.000000001).toFixed(2) %></td>
+                           <td><%= b.weight?b.weight.toFixed(2):'' %></td>
+                           <td><%= b.left>0?'Available':'Sold' %></td>
+                           <td><%= b.yard %></td>
+                           <td><%= b.block_type %></td>
+                           <td><%= b.shade %></td>
+                           <td><%= b.grade %></td>
+                           <td><%= b.note %></td>
+                        </tr>
+                    <%  });%>
+                <% }%>
+                </table>
+            </div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+        table {
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        </style>
+    </head>
+    <body>
+        <div style="width: 90%;">
+            <div style="text-align: center; padding-left: 50px;">     
+                <br><br>     
+                <h3>Overview Report</h3>
+                Unit: <%=unit.unit%> <br>
+                Filters <br>
+                Yard: <%= query.yard%>, 
+                Area: <%= query.gt%> | <%= query.lt%>, 
+                L: <%= query.l_gt%> | <%= query.l_lt%>, 
+                H: <%= query.h_gt%> | <%= query.h_lt%>, 
+                W: <%= query.w_gt%> | <%= query.w_lt%>, 
+                Date: <%= query.g_date%> | <%= query.l_date%>,
+                <table style="width: 100%;">
+                    <tr>
+                        <th style="width: 70%;">Stock at <%= yard %></th>
+                        <th style="width: 30%;"><%=date%></th>
+                    </tr>
+                    <tr>
+                        <td>Block Stock</td>
+                        <td><%= block_stock.toFixed(2) %> TON</td>
+                    </tr>
+                    <tr>
+                        <td>Marked Block Stock</td>
+                        <td><%= marked_block_stock.toFixed(2) %> TON</td>
+                    </tr>
+                    <tr>
+                        <td>Sold Block Stock</td>
+                        <td><%= sold_block_stock.toFixed(2) %> TON</td>
+                    </tr>
+                    <tr>
+                        <td>Sawing stock</td>
+                        <td><%= (slabs_stock / (unit.factor*unit.factor)).toFixed(2) %> sq. <%=unit.unit%></td>
+                    </tr>
+                    <tr>
+                        <td>Polished slabs stock</td>
+                        <td><%= (polished_slabs_stock / (unit.factor*unit.factor)).toFixed(2) %> sq. <%=unit.unit%></td>
+                    </tr>
+                    <tr>
+                        <td>Marked slabs stock</td>
+                        <td><%= (marked_slabs_stock / (unit.factor*unit.factor)).toFixed(2) %> sq. <%=unit.unit%></td>
+                    </tr>
+                    <tr>
+                        <td>Sold slabs stock</td>
+                        <td><%= (sold_slabs_stock / (unit.factor*unit.factor)).toFixed(2) %> sq. <%=unit.unit%></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </body>
+</html>

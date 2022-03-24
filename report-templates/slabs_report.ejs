@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+        table {
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        </style>
+    </head>
+    <body>
+        <div style="width: 90%;">
+            <div style="text-align: center; padding-left: 50px;">   
+                <br><br> 
+                <h3>Slabs Report</h3>
+                Unit: <%=unit.unit%> <br>
+                Filters <br>
+                Yard: <%= query.yard%>, 
+                Availability: <%= query.fa%>, 
+                Polished: <%= query.fpo%>, 
+                Type: <%= query.block_type%>, 
+                Area: <%= query.gt%> | <%= query.lt%>, 
+                L: <%= query.l_gt%> | <%= query.l_lt%>, 
+                H: <%= query.h_gt%> | <%= query.h_lt%>, 
+                Thickness: <%= query.w_gt%> | <%= query.w_lt%>mm, 
+                Date: <%= query.g_date%> | <%= query.l_date%>, 
+                <table style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th colspan="12">Slabs Stock at <%= yard %></th>
+                            <th colspan="4"><%=date%></th>
+                        </tr>
+                        <tr>
+                            <th>Sr. no.</th>
+                            <th>Date</th>
+                            <th>Block no.</th>
+                            <th>Thickness (mm)</th>
+                            <th>L <%=unit.unit%></th>
+                            <th>H <%=unit.unit%></th>
+                            <th>Pcs.</th>
+                            <th>Weight</th>
+                            <th>Sq. <%=unit.unit%></th>
+                            <th>Available Sq. <%=unit.unit%></th>
+                            <th>Yard</th>
+                            <th>Type</th>
+                            <th>Shade</th>
+                            <th>Grade</th>
+                            <th>Polished</th>
+                            <th>Remark</th>
+                        </tr>
+                    </thead>
+                <% if (blocks.length > 0) { %>
+                    <% let cnt=0 %>
+                    <% blocks.forEach(b => {%>
+                       <tr>
+                           <% cnt+=1 %>
+                           <td><%= cnt %></td>
+                           <td><%= b.date %></td>
+                           <td><%= b.is_child?b.block_no.split('zzz000')[0]+' - '+((b.block_no.split('zzz000')[1])) : b.block_no %></td>
+                           <td><%= b.dim_3 %></td>
+                           <td><%= b.dim_1?(b.dim_1/unit.factor).toFixed(2):'' %></td>
+                           <td><%= b.dim_2?(b.dim_2/unit.factor).toFixed(2):'' %></td>
+                           <td><%= b.no_of_slabs %></td>
+                           <td><%= (b.dim_1 * b.dim_2 * b.dim_3*b.no_of_slabs*b.specific_gravity*0.000000001).toFixed(2) %></td>
+                           <td><%= (((b.dim_1 * b.dim_2) / (unit.factor * unit.factor)) * b.no_of_slabs).toFixed(2) %></td>
+                           <td><%= b.left+' slabs | area- '+ (((b.dim_1 * b.dim_2) / (unit.factor * unit.factor)) * b.left).toFixed(2) %></td>
+                           <td><%= b.yard %></td>
+                           <td><%= b.block_type %></td>
+                           <td><%= b.shade %></td>
+                           <td><%= b.grade %></td>
+                           <td><%= b.polished?'Yes':'NO' %></td>
+                           <td><%= b.note %></td>
+                        </tr>
+                    <%  });%>
+                <% }%>
+                </table>
+            </div>
+        </div>
+    </body>
+</html>

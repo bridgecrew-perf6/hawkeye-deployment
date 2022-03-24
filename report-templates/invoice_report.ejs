@@ -1,0 +1,94 @@
+ <!DOCTYPE html>
+<html>
+    <head>
+        <style>
+        table {
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        </style>
+    </head>
+    <body style=" font-size: 18px;">   <br>
+        <h3 style="text-align: center;">PERFORMA INVOICE</h3> <br><br>
+        <div style=" width:80%; margin: auto;">
+            <div style="display: inline-block;">
+                <%=company.company%> <br>
+                <%=company.line_2%> <br>
+                GSTIN: <%=company.line_1%> <br><br>
+                <u>BILLED TO/CUSTOMER DETAILS</u> <br>
+                <%=party.party%> <br>
+                <%=party.party_address%> <br>
+                GSTIN: <%=party.gstin%>
+            </div>
+            <div style="display: inline-block; float: right;">
+                Date: <%=inv.date.split('-')[2] +'-'+ inv.date.split('-')[1] +'-'+ inv.date.split('-')[0]%> <br>
+                Supply State: <%=inv.supply_state%> <br>
+                Sale Type: <%=inv.sale_type%> <br>
+                Shipping Address: <%=inv.shipping_address%> <br>
+            </div>
+        </div>
+        <br>
+        <h3 style="text-align: center;">PARTICULARS</h3>
+        <table style="width: 80%; margin: auto;">
+            <thead>
+                <tr>
+                    <th style="padding: 10px;">Sr. no.</th>
+                    <th style="padding: 10px;">Item</th>
+                    <th style="padding: 10px;">HSN</th>
+                    <th style="padding: 10px;">Qty.</th>
+                    <th style="padding: 10px;">Price</th>
+                    <th style="padding: 10px;">CGST</th>
+                    <th style="padding: 10px;">SGST</th>
+                    <th style="padding: 10px;">IGST</th>
+                    <th style="padding: 10px;">Tax Amount</th>
+                    <th style="padding: 10px;">Amount</th>
+                    <th style="padding: 10px;">Total</th>
+                </tr>
+            </thead>
+            <% let cnt=0 %>
+            <% trades.forEach(f=> {%>
+                <tr>
+                    <% cnt+=1 %>
+                    <td><%= cnt %></td>
+                    <td><b><%= f.block_no %> </b><br>
+                    <%= (f.dim_1/10).toFixed(2) %>cm. x <%= (f.dim_2/10).toFixed(2) %>cm. x <%= (f.dim_3/(f.slabs?1:10)).toFixed(2) %><%= f.slabs?'mm':'cm' %> <br>
+                    <%= (f.dim_1/unit.factor).toFixed(2) %><%=unit.unit%> x <%= (f.dim_2/unit.factor).toFixed(2) %><%=unit.unit%> x <%= (f.dim_3/(f.slabs?1:unit.factor)).toFixed(2) %> <%=f.slabs?'mm':unit.unit%> <br>
+                    </td>
+                    <td><%= f.hsn %></td>
+                    <td><%= f.slabs?(f.qty).toFixed(2) + ' sq.'+unit.unit: (f.qty).toFixed(2)+' TON'  %></td>
+                    <td>&#8377; <%= f.cost.toFixed(2) %></td>
+                    <td><%= inv.cgst %>%</td>
+                    <td><%= inv.sgst %>%</td>
+                    <td><%= inv.igst %>%</td>
+                    <td>&#8377; <%= (f.cost.toFixed(2)*f.qty.toFixed(2)*((inv.igst+inv.cgst+inv.sgst)/100)).toFixed(2)  %></td>
+                    <td>&#8377; <%= (f.cost.toFixed(2)*f.qty.toFixed(2)).toFixed(2)  %></td>
+                    <td>&#8377; <%= ((f.cost.toFixed(2)*f.qty.toFixed(2)*((inv.igst+inv.cgst+inv.sgst)/100))+(f.cost.toFixed(2)*f.qty.toFixed(2)) ).toFixed(2) %></td>
+                </tr>
+            <%  });%>
+            <tr>
+                <th colspan="3"></th>
+                <th colspan="1">A: <%=total_area.toFixed(2)%> <br> T: <%=total_ton.toFixed(2)%></th>
+                <th colspan="4"> </th>
+                <th colspan="1">&#8377; <%=total_taxes.toFixed(2)%></th>
+                <th colspan="1">&#8377; <%=total_amount.toFixed(2)%></th>
+                <th colspan="1">&#8377; <%=(total_taxes+total_amount).toFixed(2)%></th>
+            </tr>
+        </table>
+        <br><br><br>
+        <div style="width: 80%; margin: auto;">
+            <div style="display: inline-block;"><%=company.terms%> <br> <%=company.line_3%></div>
+            <div style="display: inline-block; float:right">  Tax Amount: &#8377; <%=total_taxes.toFixed(2)%> <br>  Total Amount: &#8377; <%=total_amount.toFixed(2)%> <br>Net: &#8377;<%=(total_taxes+total_amount).toFixed(2)%> <br>
+                Net (round +|-): &#8377; <%=Math.round((total_taxes+total_amount).toFixed(2))%>
+                <br><br>
+                For: <%=company.company %>
+                <br><br><br><br><br><br>
+                Authorized Signatory
+            </div> 
+        </div>
+            
+        
+            
+    </body>
+</html> 
