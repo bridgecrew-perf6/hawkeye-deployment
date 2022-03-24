@@ -14,8 +14,8 @@
     </head>
     <body style="font-size: 8px;">   <br>
         <h3 style="text-align: center;">PERFORMA INVOICE</h3> <br><br>
-        <div style=" margin: auto;">
-            <div style="display: inline-block; word-wrap: normal; width: 59px; border: 1px solid black;">
+        <div style=" width:80%; margin: auto;">
+            <div style="display: inline-block; word-wrap: normal; width: 150px; border: 1px solid black;">
                 <%=company.company%> <br>
                 <%=company.line_2%> <br>
                 GSTIN: <%=company.line_1%> <br><br>
@@ -24,7 +24,7 @@
                 <%=party.party_address%> <br>
                 GSTIN: <%=party.gstin%>
             </div>
-            <div style="display: inline-block; float: right; word-wrap: normal; width: 59px;">
+            <div style="display: inline-block; float: right; word-wrap: normal; width: 150px;">
                 Date: <%=inv.date.split('-')[2] +'-'+ inv.date.split('-')[1] +'-'+ inv.date.split('-')[0]%> <br>
                 Supply State: <%=inv.supply_state%> <br>
                 Sale Type: <%=inv.sale_type%> <br>
@@ -80,8 +80,8 @@
         </table>
         <br><br><br>
         <div style="width: 80%; margin: auto;">
-            <div style="display: inline-block; word-wrap: normal;width: 59px;"><%=company.terms%> <br> <%=company.line_3%></div>
-            <div style="display: inline-block; float:right; word-wrap: normal;width: 59px;">  Tax Amount: &#8377; <%=total_taxes.toFixed(2)%> <br>  Total Amount: &#8377; <%=total_amount.toFixed(2)%> <br>Net: &#8377;<%=(total_taxes+total_amount).toFixed(2)%> <br>
+            <div style="display: inline-block; word-wrap: normal;width: 150px;"><%=company.terms%> <br> <%=company.line_3%></div>
+            <div style="display: inline-block; float:right; word-wrap: normal;width: 150px;">  Tax Amount: &#8377; <%=total_taxes.toFixed(2)%> <br>  Total Amount: &#8377; <%=total_amount.toFixed(2)%> <br>Net: &#8377;<%=(total_taxes+total_amount).toFixed(2)%> <br>
                 Net (round +|-): &#8377; <%=Math.round((total_taxes+total_amount).toFixed(2))%>
                 <br><br>
                 For: <%=company.company %>
