@@ -74,6 +74,7 @@ router.get('/overview-report',  async (req, res) => {
 });
 
 router.get('/invoice-report',  async (req, res) => {
+
   var u = await verifyToken(req.query.token);
   let inv = await Invoice.findOne({trade_id: req.query.trade_id})
     if (u==0 || inv.user!=u.user) return res.send("bad request")
