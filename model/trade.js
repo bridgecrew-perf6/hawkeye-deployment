@@ -16,8 +16,9 @@ const tradeSchema = new mongoose.Schema({
     dim_1:{type:Number, default:0},
     dim_2:{type:Number, default:0},
     dim_3:{type:Number, default:0},
-    round_off: {type: String, default:''},
-    hsn: {type: String, defult:''}
+    round_off: {type: Boolean, default:false},
+    hsn: {type: String, defult:''},
+    quotation: {type: Boolean}
 }, {collection: 'trade'});
 
 const model = mongoose.model('TradeSchema', tradeSchema);

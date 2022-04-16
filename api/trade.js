@@ -19,6 +19,11 @@ router.post('/get-invoices', async (req, res)=>{
 
     let all = await Invoice.find({user: u.user});
     all.reverse()
+    if (req.body.quotation == true) {
+        all = all.filter(a => a.quotation == true)
+    } else {
+        all = all.filter(a => a.quotation == false)
+    }
     if (req.body.party) {
         all = all.filter(a => a.party == req.body.party)
     }
@@ -69,7 +74,12 @@ router.post('/new-invoice', async (req, res)=>{
             supply_state: r.supply_state,
             sale_type: r.sale_type,
             party: r.party,
-            user: u.user
+            user: u.user,
+            eway_bill_no: r.eway_bill_no,
+            royalty_no: r.royalty_no,
+            transportation_mode: r.transportation_mode,
+            customer_ref_no: r.customer_ref_no,
+            quotation: r.quotation
         })
         return res.json({status:"ok"})
     } catch(e){console.log(e)}
@@ -84,8 +94,8 @@ router.post('/delete-invoice', async (req, res)=>{
     try {
         let trades = await Trade.find({trade_id: req.body.trade_id});
         for (let i=0; i<trades.length; i++) {
-            let trade = await Trade.findOne({ _id: trades[i]._id, user: parent_user.user })
-            if (trade) {
+            let trade = trades[i]
+            if (trade.quotation==false) {
                 if (trade.slabs) {
                     let slabs = await Slabs.findOne({block_no:trade.block_no})
                     await Slabs.updateOne({block_no: trade.block_no},{$set: {
@@ -132,8 +142,8 @@ router.post('/sell-trade',  async (req, res) => {
 
     try {
         const trade = await Trade.findOne({ _id: r._id, sold: 0, slabs: r.slabs, user: parent_user.user })
+        let qty=''
         if (trade) {
-            let qty=''
             if (trade.slabs) {
                 let slabs = await Slabs.findOne({block_no: trade.block_no});
                 qty = slabs.dim_1*slabs.dim_2*slabs.reserved
@@ -158,7 +168,8 @@ router.post('/sell-trade',  async (req, res) => {
                 r_dim_1: r.r_dim_1,
                 r_dim_2: r.r_dim_2,
                 r_dim_3: r.r_dim_3,
-                round_off: r.round_off
+                round_off: r.round_off,
+                date: r.date
             }})
             return res.json({ status: "ok" })
         }
@@ -185,11 +196,13 @@ router.post('/reserve-trade',  async (req, res) => {
                 }
 
                 if (r.quantity <= total_pieces - (temp_block.sold + temp_block.reserved)) {
-                    await Block.updateOne({ block_no: r.block_no }, {
-                        $set: {
-                            reserved: 1
-                        }
-                    });
+                    if (req.body.quotation == false) {
+                        await Block.updateOne({ block_no: r.block_no }, {
+                            $set: {
+                                reserved: 1
+                            }
+                        });
+                    }
                     await Trade.create({
                         block_no: r.block_no,
                         trade_id:req.body.trade_id,
@@ -197,7 +210,13 @@ router.post('/reserve-trade',  async (req, res) => {
                         slabs: false,
                         sold: 0,
                         reserved: 1,
-                        is_child: temp_block.is_child
+                        is_child: temp_block.is_child,
+                        quotation: req.body.quotation,
+                        cost: r.cost,
+                        r_dim_1:r.r_dim_1,
+                        r_dim_2:r.r_dim_2,
+                        round_off:r.round_off
+
                     });
                     return res.json({ status: "ok" })
                 }
@@ -209,11 +228,13 @@ router.post('/reserve-trade',  async (req, res) => {
                     return res.json({ status: "failed" });
                 }
                 if (r.quantity <= total_pieces) {
-                    await Slabs.updateOne({ block_no: r.block_no }, {
-                        $set: {
-                            "reserved": r.quantity + slb.reserved,
-                        }
-                    });
+                    if (req.body.quotation == false) {
+                        await Slabs.updateOne({ block_no: r.block_no }, {
+                            $set: {
+                                "reserved": r.quantity + slb.reserved,
+                            }
+                        });
+                    }
                     await Trade.create({
                         block_no: r.block_no,
                         trade_id:req.body.trade_id,
@@ -221,7 +242,12 @@ router.post('/reserve-trade',  async (req, res) => {
                         slabs: true,
                         sold: 0,
                         reserved: r.quantity,
-                        is_child: temp_block.is_child
+                        is_child: temp_block.is_child,
+                        quotation: req.body.quotation,
+                        cost: r.cost,
+                        r_dim_1:r.r_dim_1,
+                        r_dim_2:r.r_dim_2,
+                        round_off:r.round_off
                     });
                     return res.json({ status: "ok" });
                 }
@@ -233,6 +259,67 @@ router.post('/reserve-trade',  async (req, res) => {
     res.json({status:"failed"})
 });
 
+router.post('/make-reserved', async (req,res)=>{
+    let r = req.body.c;
+    var u = await verifyToken(req.body.token);
+    const parent_user = await User.findOne({ user: u.user, salesman_role: true }).lean();
+    if (u == 0 || !parent_user) return res.json({status:"failed"})
+
+    let flag = -1;
+    for (let i=0; i<r.length; i++) {
+        const temp_block = await Block.findOne({ block_no: r[i].block_no, has_children: false });
+        if (temp_block) {
+            if (temp_block.slabs == false && r[i].slabs == false) {
+                var total_pieces = 1;
+
+                if (r[i].reserved > total_pieces - (temp_block.sold + temp_block.reserved)) {
+                    flag = i; break;
+                }
+            } else { flag = i; break; }
+            if (temp_block.slabs == true && r[i].slabs == true) {
+                let slb = await Slabs.findOne({block_no:r.block_no});
+                let total_pieces = slb.no_of_slabs-(slb.reserved + slb.sold + slb.lost)
+                if (r[i].reserved > total_pieces) {
+                    flag = i; break;
+                }
+            } else { flag = i; break; }
+        } else { flag = i; break; }
+    }
+    if (flag != -1) {
+        return res.json({status:"failed", data: flag})
+    }
+    
+
+    for (let i=0; i<r.length; i++) {
+        const temp_block = await Block.findOne({ block_no: r[i].block_no, has_children: false });
+        if (temp_block) {
+            if (temp_block.slabs == false && r[i].slabs == false) {
+                await Block.updateOne({ block_no: r[i].block_no }, {
+                    $set: {
+                        reserved: 1
+                    }
+                });
+                await Trade.updateMany({_id: r[i]._id}, {
+                    quotation: false
+                })
+            }
+            if (temp_block.slabs == true && r[i].slabs == true) {
+                let slb = await Slabs.findOne({block_no:r[i].block_no});
+                await Slabs.updateOne({ block_no: r[i].block_no }, {
+                    $set: {
+                        "reserved": r[i].reserved + slb.reserved,
+                    }
+                });
+                await Trade.updateOne({_id: r[i]._id}, {
+                    quotation:false
+                })
+            }
+        }
+        
+    }
+    return res.json({status:"ok"})
+})
+
 router.post('/delete-trade',  async (req, res) => {
     var r = req.body;
     var u = await verifyToken(r.token);
@@ -240,7 +327,7 @@ router.post('/delete-trade',  async (req, res) => {
     if (u == 0 || !parent_user) return res.json({status:"failed"})
     try {
         let trade = await Trade.findOne({ _id: r._id, user: parent_user.user })
-        if (trade) {
+        if (trade && trade.quotation==false) {
             if (trade.slabs) {
                 let slabs = await Slabs.findOne({block_no:trade.block_no})
                 await Slabs.updateOne({block_no: trade.block_no},{$set: {
@@ -254,16 +341,16 @@ router.post('/delete-trade',  async (req, res) => {
                     sold : block.sold - trade.sold
                 }});
             }
-            await Trade.deleteOne({_id:r._id});
-            return res.json({ status: "ok" })
         }
+        await Trade.deleteOne({_id:r._id});
+        return res.json({ status: "ok" })
     }
     catch {}
 
     res.json({ status: "failed" });
 });
 
-router.post('/dispatched',  async (req, res) => {
+router.post('/dispatched', async (req, res) => {
     var r = req.body;
     var u = await verifyToken(r.token);
     const parent_user = await User.findOne({ user: u.user, salesman_role: true }).lean();
@@ -323,5 +410,14 @@ router.post('/get-sales', async(req, res)=>{
     if (max_page < page) { page = 0; }
     
     return res.json({ status: "ok", data: selected, max_page: max_page, page: page });
-})
+});
+
+router.post('/get-trade-ids', async (req, res)=>{
+    var u = await verifyToken(req.body.token);
+    if (u == 0) return res.json({status: "failed"});
+    let all = await Invoice.find({user: u.user, quotation: req.body.quotation}, {trade_id:1});
+    all.reverse()
+    res.json({status: "ok", data: all})
+});
+
 module.exports = router

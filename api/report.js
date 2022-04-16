@@ -380,7 +380,7 @@ async function slabsReport(q) {
       +' , Thickness: '+ q.w_gt +'-' + q.w_lt
       +' , Date: '+ q.g_date +'-' + q.l_date
     })
-    report.content.push({style: 'table', table:{body:[['Sr.no.', 'Date', 'Block No.', 'Thickness', 'L', 'H', 'Pcs.', 'TON', 'Sq.'+unit.unit, 'Status', 'Remark']]}})
+    report.content.push({style: 'table', table:{widths: ['auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 60], body:[['Sr.no.', 'Date', 'Block No.', 'Thickness', 'L', 'H', 'Pcs.', 'TON', 'Sq.'+unit.unit, 'Status', 'Remark']]}})
     for (let i=0; i<all.length; i++) {
       report.content[3].table.body.push([
         i+1,
@@ -393,7 +393,7 @@ async function slabsReport(q) {
         (all[i].left*all[i].weight).toFixed(2) + ' / ' +(all[i].no_of_slabs*all[i].weight).toFixed(2),
         ((all[i].left*all[i].area)/(unit.factor*unit.factor)).toFixed(2) +' / '+((all[i].no_of_slabs*all[i].area)/(unit.factor*unit.factor)).toFixed(2),
         all[i].left==0?'Sold': 'Available',
-        '  gwergwergwergwregwergwergwergwerighwoierugiwuerhgiohweroighwoeirughoiwuerhgoiuwehrgiouwehrgiouhweirughowieughiowuerhgiuhergghiowuerhgiuhergghiowuerhgiuhergghiowuerhgiuhergghiowuerhgiuhergghiowuerhgiuhergghiowuerhgiuhergghiowuerhgiuhergghiowuerhgiuhergghiowuerhgiuhergghiowuerhgiuhergghiowuerhgiuhergghiowuerhgiuhergghiowuerhgiuhergghiowuerhgiuhergghiowuerhgiuhergghiowuerhgiuhergghiowuerhgiuhergghiowuerhgiuhergghiowuerhgiuhergghiowuerhgiuhergghiowuerh giuhergghiowuerhgiuhergghiowuerhgiuherg  '
+        '    '
   
       ])
     }
@@ -636,6 +636,309 @@ async function overviewReport(q) {
     
     return report
 }
+
+router.get('/invoice-report',  async (req, res) => {
+  var u = await verifyToken(req.query.token);
+  let inv = await Invoice.findOne({trade_id: req.query.trade_id})
+    if (u==0 || inv.user!=u.user) return res.send("bad request")
+  const stream = res.writeHead(200, {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `inline;`,
+    });
+    for (let q in req.query) {
+      if (req.query[q]=='undefined') {
+        req.query[q]=undefined
+      }
+    }
+    let trades = await Trade.find({trade_id: req.query.trade_id})
+    let total_taxes = 0
+    let total_amount = 0
+    let total_area = 0
+    let total_ton = 0
+    let unit = await Unit.findOne({unit:req.query.unit});
+    for (let i=0; i<trades.length; i++) {
+      if (trades[i].slabs) {
+        let s = await Slabs.findOne({block_no: trades[i].block_no});
+        s.dim_1 = s.dim_1-trades[i].r_dim_1
+        s.dim_2 = s.dim_2-trades[i].r_dim_2
+        if (trades[i].round_off) {
+          let frac_dim_1 = Math.floor((s.dim_1/25.4)%12)
+          let frac_dim_2 = Math.floor((s.dim_2/25.4)%12)
+
+          if (frac_dim_1>=0 && frac_dim_1<3) {
+            s.dim_1 = Math.floor(s.dim_1/304.8) + 0
+          }
+          if (frac_dim_2>=0 && frac_dim_2<3) {
+            s.dim_2 = Math.floor(s.dim_2/304.8) + 0
+          }
+
+          if (frac_dim_1>=3 && frac_dim_1<6) {
+            s.dim_1 = Math.floor(s.dim_1/304.8) + 0.3
+          }
+          if (frac_dim_2>=3 && frac_dim_2<6) {
+            s.dim_2 = Math.floor(s.dim_2/304.8) + 0.3
+          }
+
+          if (frac_dim_1>=6 && frac_dim_1<9) {
+            s.dim_1 = Math.floor(s.dim_1/304.8) + 0.6
+          }
+          if (frac_dim_2>=6 && frac_dim_2<9) {
+            s.dim_2 = Math.floor(s.dim_2/304.8) + 0.6
+          }
+
+          if (frac_dim_1>=9 && frac_dim_1<12) {
+            s.dim_1 = Math.floor(s.dim_1/304.8) + 0.9
+          }
+          if (frac_dim_2>=9 && frac_dim_2<12) {
+            s.dim_2 = Math.floor(s.dim_2/304.8) + 0.9
+          }
+          s.dim_1 = s.dim_1*304.8
+          s.dim_2 = s.dim_2*304.8
+        }
+
+        trades[i].qty = (((s.dim_1*s.dim_2)/(unit.factor*unit.factor))*trades[i].sold).toFixed(2)
+        trades[i].cost = trades[i].cost*unit.factor*unit.factor
+        // only the dims are in mm
+        trades[i].dim_1 = s.dim_1
+        trades[i].dim_2 = s.dim_2
+        trades[i].dim_3 = s.dim_3
+        trades[i].hsn = s.slabs_hsn_code
+        total_area+= (trades[i].qty.toFixed(2))*1
+      } else {
+        let b = await Block.findOne({block_no: trades[i].block_no})
+        trades[i].dim_1 = b.dim_1-trades[i].r_dim_1
+        trades[i].dim_2 = b.dim_2-trades[i].r_dim_2
+        trades[i].dim_3 = b.dim_3-trades[i].r_dim_3
+        trades[i].hsn = b.hsn_code
+        let quarry = await Quarry.findOne({quarry: b.quarry})
+        if (!quarry) {
+          quarry = {
+            specific_gravity: 0
+          }
+        }
+        trades[i].qty = (trades[i].dim_1*trades[i].dim_2*trades[i].dim_3*quarry.specific_gravity*0.000000001).toFixed(2)
+        total_ton+=(trades[i].qty.toFixed(2))*1
+      }
+      total_taxes+=((trades[i].cost * trades[i].qty *((inv.igst+ inv.cgst+inv.sgst)/100)).toFixed(2))*1
+      total_amount+=((trades[i].cost * trades[i].qty).toFixed(2))*1
+    }
+
+    let company = await Company.findOne({company: inv.company})
+    let party = await Party.findOne({party: inv.party});
+    // pdfMaker(
+    //   (chunk) => stream.write(chunk),
+    //   () => stream.end(),
+    //   {inv: inv, trades: trades, unit: unit, company: company, party: party, total_taxes: total_taxes, total_amount: total_amount, total_area: total_area, total_ton: total_ton},
+    //   "invoice_report.ejs"
+    // );
+});
+
+router.get('/quotation-report', async (req, res)=>{
+  var u = await verifyToken(req.query.token);
+  let inv = await Invoice.findOne({trade_id: req.query.trade_id})
+    if (u==0 || inv.user!=u.user) return res.send("bad request")
+  const stream = res.writeHead(200, {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `inline;`,
+    });
+    for (let q in req.query) {
+      if (req.query[q]=='undefined') {
+        req.query[q]=undefined
+      }
+    }
+
+    let trades = await Trade.find({trade_id: req.query.trade_id})
+    // trades.toObject();
+    let total_taxes = 0
+    let total_amount = 0
+    let total_area = 0
+    let total_ton = 0
+    let unit = await Unit.findOne({unit:req.query.unit});
+    for (let i=0; i<trades.length; i++) {
+      var q = (await Block.findOne({block_no: trades[i].block_no})).quarry
+      if (trades[i].is_child == true) {
+        var q = (await Block.findOne({block_no: (trades[i].block_no.split('zzz000')[0])})).quarry
+      }
+      trades[i].block_type = (await Quarry.findOne({quarry: q})).block_type
+      if (trades[i].block_type == undefined) {
+        trades[i].block_type = ''
+      }
+      if (trades[i].slabs) {
+        let s = await Slabs.findOne({block_no: trades[i].block_no});
+        
+        s.dim_1 = s.dim_1-trades[i].r_dim_1
+        s.dim_2 = s.dim_2-trades[i].r_dim_2
+        if (trades[i].round_off) {
+          let frac_dim_1 = Math.floor((s.dim_1/25.4)%12)
+          let frac_dim_2 = Math.floor((s.dim_2/25.4)%12)
+
+          if (frac_dim_1>=0 && frac_dim_1<3) {
+            s.dim_1 = Math.floor(s.dim_1/304.8) + 0
+          }
+          if (frac_dim_2>=0 && frac_dim_2<3) {
+            s.dim_2 = Math.floor(s.dim_2/304.8) + 0
+          }
+
+          if (frac_dim_1>=3 && frac_dim_1<6) {
+            s.dim_1 = Math.floor(s.dim_1/304.8) + 0.3
+          }
+          if (frac_dim_2>=3 && frac_dim_2<6) {
+            s.dim_2 = Math.floor(s.dim_2/304.8) + 0.3
+          }
+
+          if (frac_dim_1>=6 && frac_dim_1<9) {
+            s.dim_1 = Math.floor(s.dim_1/304.8) + 0.6
+          }
+          if (frac_dim_2>=6 && frac_dim_2<9) {
+            s.dim_2 = Math.floor(s.dim_2/304.8) + 0.6
+          }
+
+          if (frac_dim_1>=9 && frac_dim_1<12) {
+            s.dim_1 = Math.floor(s.dim_1/304.8) + 0.9
+          }
+          if (frac_dim_2>=9 && frac_dim_2<12) {
+            s.dim_2 = Math.floor(s.dim_2/304.8) + 0.9
+          }
+          s.dim_1 = s.dim_1*304.8
+          s.dim_2 = s.dim_2*304.8
+        }
+
+        trades[i].qty = (((s.dim_1.toFixed(3)*s.dim_2.toFixed(3))/(unit.factor*unit.factor))*trades[i].reserved).toFixed(3)
+        
+        trades[i].cost = (trades[i].cost*unit.factor*unit.factor).toFixed(2)
+        // only the dims are in mm
+        trades[i].dim_1 = (s.dim_1/unit.factor).toFixed(3)
+        trades[i].dim_2 = (s.dim_2/unit.factor).toFixed(3)
+        trades[i].dim_3 = s.dim_3.toFixed(2)
+        trades[i].hsn = s.slabs_hsn_code
+        total_area+= trades[i].qty*1
+      } else {
+        let b = await Block.findOne({block_no: trades[i].block_no})
+        
+        if (b.is_child == true) {
+          b = await Block.findOne({block_no: trades[i].block_no.split('zzz000')[0]})
+        }
+        let quarry = await Quarry.findOne({quarry: b.quarry})
+        trades[i].hsn = b.hsn_code
+        console.log(quarry)
+        if (!quarry) {
+          quarry = {
+            specific_gravity: 0
+          }
+        }
+        b.dim_1 = ((b.dim_1-trades[i].r_dim_1)/unit.factor).toFixed(3)
+        b.dim_2 = ((b.dim_2-trades[i].r_dim_2)/unit.factor).toFixed(3)
+        b.dim_3 = ((b.dim_3-trades[i].r_dim_3)/unit.factor).toFixed(3)
+        trades[i].qty = (b.dim_1*b.dim_2*b.dim_3*quarry.specific_gravity*0.000000001).toFixed(3)
+        total_ton+=(trades[i].qty)*1
+      }
+      trades[i].igst = ((trades[i].qty*trades[i].cost)*(inv.igst/100)).toFixed(2)
+      trades[i].cgst = ((trades[i].qty*trades[i].cost)*(inv.cgst/100)).toFixed(2)
+      trades[i].sgst = ((trades[i].qty*trades[i].cost)*(inv.sgst/100)).toFixed(2)
+
+      total_taxes+=(trades[i].igst+trades[i].cgst+trades[i].sgst)*1
+      total_amount+=((trades[i].cost * trades[i].qty).toFixed(2))*1
+    }
+
+    let company = await Company.findOne({company: inv.company})
+    let party = await Party.findOne({party: inv.party});
+    const Pdfmake = require('pdfmake');
+    var fonts = {
+      Roboto: {
+        normal: __dirname+'/Roboto-Regular.ttf',
+        bold:  __dirname+'/Roboto-Medium.ttf',
+        italics:  __dirname+'/Roboto-Italic.ttf',
+        bolditalics:  __dirname+'/Roboto-MediumItalic.ttf'
+      }
+    };
+    let pdfmake = new Pdfmake(fonts);
+    
+    let report = {
+      pageSize: 'A4',
+      pageOrientation: 'portrait',
+      content: [],
+      styles: {
+        header: {
+          fontSize: 16,
+          bold: true,
+          margin: [0, 0, 0, 10],
+          alignment:'center'
+        },
+        table: {
+          margin: [0, 5, 0, 15]
+        },
+        tableHeader: {
+          bold: true,
+          fontSize: 10,
+          color: 'black'
+        }
+      },
+      defaultStyle: {
+        fontSize:10
+      },
+    }
+  
+    report.content.push({ text: 'Quotation Report', style: 'header' })
+    report.content.push({
+      table: {
+        widths:['60%','40%'],
+				body: [
+					[company.company+'\n'+company.line_2+'\nGSTIN: '+company.line_1+'\nBILLED TO/CUSTOMER DETAILS:\n'+party.party+'\nGSTIN: '+party.gstin, 
+          {
+            text:"Date: "+inv.date+'\nSupply State: '+inv.supply_state+'\nSale Type: '+inv.sale_type
+          }
+        ],
+					['BILLING ADDRESS:\n'+party.party_address, 'SHIPPING ADDRESS:\n'+inv.shipping_address]
+				]
+			}
+    })
+    report.content.push({text:"\n\nParticulars\n", alignment:'center'})
+    report.content.push({style: 'table', table:{widths: ['3%','32%','7%','8%','8%','8%','8%','8%','8%','10%'], body:[['#', 'Item', 'HSN', 'Qty', 'Price (Rs.)', 'GST(%)', 'IGST (Rs.)','CGST (Rs.)','SGST (Rs.)', 'Total (Rs.)']]}})
+    for (let i=0; i<trades.length; i++) {
+      report.content[3].table.body.push([
+        i+1,
+        trades[i].block_type+'\n'
+        + (trades[i].dim_1*unit.factor/10).toFixed(2) + ' x ' + (trades[i].dim_2*unit.factor/10).toFixed(2) + (trades[i].slabs?('cm    x '+trades[i].dim_3.toFixed(1)+' mm\n'):((trades[i].dim_3*unit.factor/10).toFixed(2)+' cm\n'))
+        + trades[i].dim_1 + ' x ' + trades[i].dim_2 + ' x ' + (trades[i].slabs?(unit.unit+'    x '+trades[i].dim_3.toFixed(1))+'mm':trades[i].dim_3 + unit.unit)+'\n'
+        + (trades[i].is_child?trades[i].block_no.split('zzz000')[0]+'-'+trades[i].block_no.split('zzz000')[1]:trades[i].block_no),
+        trades[i].hsn,
+        trades[i].qty+(trades[i].slabs?(' sq.'+unit.unit):(' TON')),
+        '₹'+trades[i].cost,
+        (inv.igst+inv.cgst+inv.sgst) +'%',
+        '₹'+trades[i].igst,
+        '₹'+trades[i].cgst,
+        '₹'+trades[i].sgst,
+        '₹'+((trades[i].cost*trades[i].qty)*1+(trades[i].igst*1+trades[i].cgst*1+trades[i].sgst*1)*1)
+
+      ])
+    }
+    report.content[3].table.body.push(["","","","Total- A:"+total_area.toFixed(3)+" T:"+total_ton.toFixed(3),"","","","","",""])
+
+    report.content.push({
+      table: {
+        widths:['70%','30%'],
+				body: [
+					['TERMS & CONDITIONS:'+'\n'+company.terms+'\nBANK DETAILS:\n'+company.line_3, 
+            {table:{widths:['60%', '40%'], body:[
+              ['Total Amount', '₹'+total_amount.toFixed(2)],
+              ['Total Taxes', '₹'+total_taxes.toFixed(2)],
+              ['Round(-+)', '₹'+( ((total_amount.toFixed(2))*1+(total_taxes.toFixed(2))*1) - Math.round((total_amount.toFixed(2))*1+(total_taxes.toFixed(2))*1) ).toFixed(2)],
+              ['Net Amount', '₹'+(((total_amount.toFixed(2)+total_taxes.toFixed(2)))-( (total_amount.toFixed(2)+total_taxes.toFixed(2)) - Math.round(total_amount.toFixed(2)+total_taxes.toFixed(2)) ))]
+            ]}, text:"For\n"+company.company+'\n'}
+          ]
+        ]
+			}
+    })
+
+    report.content.push({
+      text:"\nThis is a computer generated document", alignment: "center"
+    })
+
+
+    let pdfDoc = pdfmake.createPdfKitDocument(report, {});
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+})
 
 
 module.exports = router

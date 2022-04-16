@@ -57,12 +57,12 @@ router.post('/brief-details',  async (req, res) => {
             var confirmed = 0;
             var pending = 0;
             for (let as of all_sales) {
-                    if (as.reserved != 0) {
-                        pending += 1
-                    }
-                    else {
-                        confirmed += 1
-                    }
+                if (as.reserved != 0 && as.quotation == false) {
+                    pending += 1
+                }
+                if (as.sold != 0 && as.quotation == false) {
+                    confirmed += 1
+                }
             }
             var sales = await Trade.find({ reserved: 0 })
             var sales_performance = []
