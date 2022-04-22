@@ -20,6 +20,12 @@ router.post('/break-block',  async (req, res) => {
             return res.json({ status: "failed" });
         }
         var blk = await Block.findOne({ block_no: r.block_no ,has_children:false, slabs:false, is_child:false, sold:0, reserved:0})
+        var qry = await Quarry.findOne({quarry: blk.quarry})
+        if (qry == undefined) {
+            qry = {
+                specific_gravity: 0
+            }
+        }
         if (blk) {
             if (blk.reserved + blk.sold == 0) {
                 try {
@@ -52,7 +58,7 @@ router.post('/break-block',  async (req, res) => {
                             processor:r.broken_blocks[i].processor,
                             processing_cost:r.broken_blocks[i].processing_cost,
                             yard: r.broken_blocks[i].processor,
-                            weight: r.broken_blocks[i].weight,
+                            weight: r.broken_blocks[i].dim_1*r.broken_blocks[i].dim_2*r.broken_blocks[i].dim_3*qry.specific_gravity*0.000000001,
                             cost: (vol_arr[i]/vol_sum)*block_cost,
                             yard_history: [{to_yard: r.broken_blocks[i].processor, date:"", transportation_cost:''}]
                         });
