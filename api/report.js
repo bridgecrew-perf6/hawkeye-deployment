@@ -203,7 +203,7 @@ async function blockReport(q) {
     ])
   }
   report.content.push({
-    text:"\nTotal actual Weight(TON) - " + total_weight
+    text:"\nTotal actual Weight(TON) - " + total_weight.toFixed(2)
   })
   return report
 }
@@ -409,10 +409,10 @@ async function slabsReport(q) {
         '    '
       ])
     }
-    report.content.push({text: "Total weight(ton) - "+total_weight})
-    report.content.push({text: "Total weight of left stock(ton) - "+total_left_weight})
-    report.content.push({text: "Total area(sq."+unit.unit+") - "+total_area})
-    report.content.push({text: "Total area of left stock(sq."+unit.unit+") - "+total_left_area})
+    report.content.push({text: "Total weight(ton) - "+total_weight.toFixed(3)})
+    report.content.push({text: "Total weight of left stock(ton) - "+total_left_weight.toFixed(3)})
+    report.content.push({text: "Total area(sq."+unit.unit+") - "+total_area.toFixed(3)})
+    report.content.push({text: "Total area of left stock(sq."+unit.unit+") - "+total_left_area.toFixed(3)})
     return report
 }
 
@@ -747,10 +747,10 @@ router.get('/block-margin-report', async (req, res)=>{
     }
     
     report.content.push({
-      text:"\nTotal actual Weight(ton) - " + total_weight
+      text:"\nTotal actual Weight(ton) - " + total_weight.toFixed(3)
     })
     report.content.push({
-      text:"\nTotal Weight after margin(ton) - " + total_weight_without_margin
+      text:"\nTotal Weight after margin(ton) - " + total_weight_without_margin.toFixed(3)
     })
 
     report.content.push({
@@ -906,16 +906,16 @@ router.get('/slabs-margin-report', async (req, res)=>{
     }
     
     report.content.push({
-      text:"\nTotal actual Weight(ton) - " + total_weight
+      text:"\nTotal actual Weight(ton) - " + total_weight.toFixed(3)
     })
     report.content.push({
-      text:"\nTotal Weight after margin and R.off(ton) - " + total_weight_without_margin
+      text:"\nTotal Weight after margin and R.off(ton) - " + total_weight_without_margin.toFixed(3)
     })
     report.content.push({
-      text:"\nTotal actual area (sq."+unit.unit+") - " + total_area
+      text:"\nTotal actual area (sq."+unit.unit+") - " + total_area.toFixed(3)
     })
     report.content.push({
-      text:"\nTotal area after margin and R.off (sq."+unit.unit+") - " + total_area_without_margin
+      text:"\nTotal area after margin and R.off (sq."+unit.unit+") - " + total_area_without_margin.toFixed(3)
     })
 
     report.content.push({
