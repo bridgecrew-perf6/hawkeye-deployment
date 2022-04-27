@@ -151,7 +151,7 @@ router.post('/get-items',  async (req, res) => {
                     if (all[i].slabs) {
                         // console.log((all[i].dim_1 * all[i].dim_2 * all[i].left)/(304.8*304.8))
                         total_slabs_area += all[i].dim_1 * all[i].dim_2 * all[i].left
-                        total_cost += all[i].cost
+                        total_cost += all[i].slabs ? all[i].cost*all[i].left : all[i].cost
                     } else {
                         if (all[i].weight*1) {
                             total_block_weight += all[i].weight
