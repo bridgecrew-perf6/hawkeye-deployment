@@ -60,7 +60,7 @@ router.post('/break-block',  async (req, res) => {
                             yard: r.broken_blocks[i].processor,
                             weight: r.broken_blocks[i].dim_1*r.broken_blocks[i].dim_2*r.broken_blocks[i].dim_3*qry.specific_gravity*0.000000001,
                             cost: (vol_arr[i]/vol_sum)*block_cost,
-                            yard_history: [{to_yard: r.broken_blocks[i].processor, date:"", transportation_cost:''}]
+                            yard_history: [{to_yard: r.broken_blocks[i].processor, date:"", transportation_cost:0}]
                         });
                         await Drawer.create({user:usr.user, block_no:children[i]});
 
@@ -132,7 +132,7 @@ router.post('/process-block',  async (req, res) => {
                         "yard": r.processor,
                         "cost": slabs_cost,
                         is_child:block_in_focus.is_child,
-                        yard_history: [{to_yard: r.processor, date:'', transportation_cost:''}]
+                        yard_history: [{to_yard: r.processor, date:'', transportation_cost:0}]
                     })
 
                     return res.json({ status: "ok" });
