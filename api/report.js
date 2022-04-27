@@ -47,6 +47,7 @@ router.get('/block-report',  async (req, res) => {
 async function blockReport(q) {
   var u = await verifyToken(q.token);
   var all = [];
+  
   if (u != 0) {
       const parent_user = await User.findOne({ user: u.user }).lean();
       if (parent_user) {
@@ -182,7 +183,9 @@ async function blockReport(q) {
     +' , Date: '+ q.g_date +'-' + q.l_date
   })
   report.content.push({style: 'table', table:{body:[['Sr.no.', 'Date', 'Block No.', 'L', 'H', 'W', 'CBM', 'TON', 'Type', 'Status', 'Yard', 'Remark']]}})
+  let total_weight = 0
   for (let i=0; i<all.length; i++) {
+    total_weight += 1* all[i].weight.toFixed(2)
     report.content[3].table.body.push([
       i+1,
       all[i].date,
@@ -199,6 +202,9 @@ async function blockReport(q) {
 
     ])
   }
+  report.content.push({
+    text:"\nTotal actual Weight - " + total_weight
+  })
   return report
 }
 
@@ -380,7 +386,15 @@ async function slabsReport(q) {
       +' , Date: '+ q.g_date +'-' + q.l_date
     })
     report.content.push({style: 'table', table:{widths: ['auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 60], body:[['Sr.no.', 'Date', 'Block No.', 'Thickness', 'L', 'H', 'Pcs.', 'TON', 'Sq.'+unit.unit, 'Status', 'Remark']]}})
+    let total_weight = 0
+    let total_left_weight = 0
+    let total_area = 0
+    let total_left_area = 0
     for (let i=0; i<all.length; i++) {
+      total_weight += 1*(all[i].no_of_slabs*all[i].weight).toFixed(2) || 0
+      total_left_weight += 1*(all[i].left*all[i].weight).toFixed(2) || 0
+      total_area += 1*((all[i].no_of_slabs*all[i].area)/(unit.factor*unit.factor)).toFixed(2) || 0
+      total_left_area += 1*((all[i].left*all[i].area)/(unit.factor*unit.factor)).toFixed(2) || 0
       report.content[3].table.body.push([
         i+1,
         all[i].date,
@@ -393,9 +407,12 @@ async function slabsReport(q) {
         ((all[i].left*all[i].area)/(unit.factor*unit.factor)).toFixed(2) +' / '+((all[i].no_of_slabs*all[i].area)/(unit.factor*unit.factor)).toFixed(2),
         all[i].left==0?'Sold': 'Available',
         '    '
-  
       ])
     }
+    report.content.push({text: "Total weight"+total_weight})
+    report.content.push({text: "Total weight of left stock"+total_left_weight})
+    report.content.push({text: "Total area"+total_area})
+    report.content.push({text: "Total area of left stock"+total_left_area})
     return report
 }
 
@@ -692,6 +709,8 @@ router.get('/block-margin-report', async (req, res)=>{
     report.content.push({text: 'Date: '+date, alignment:'right'})
     report.content.push({text: "Unit: "+unit.unit, alignment:'right'})
     report.content.push({style: 'table', table:{ body:[['sr. no.', 'Date', 'Block no', 'L', 'H', 'W', 'Ton','m. L','m. H', 'Weight after margin', 'Remark']]}})
+    let total_weight = 0
+    let total_weight_without_margin = 0
     for (let i=0; i<trades.length; i++) {
 
       var blk = await Block.findOne({block_no: trades[i].block_no});
@@ -707,6 +726,10 @@ router.get('/block-margin-report', async (req, res)=>{
           specific_gravity:0
         }
       }
+
+      total_weight += 1 * blk.weight.toFixed(3) || 0
+      total_weight_without_margin += 1*((blk.dim_1-trades[i].r_dim_1)*(blk.dim_2-trades[i].r_dim_2)*blk.dim_3*qry.specific_gravity*0.000000001).toFixed(3) || 0
+
       let inv = await Invoice.findOne({trade_id: trades[i].trade_id})
       report.content[3].table.body.push([
         i+1,
@@ -723,6 +746,12 @@ router.get('/block-margin-report', async (req, res)=>{
       ])
     }
     
+    report.content.push({
+      text:"\nTotal actual Weight - " + total_weight
+    })
+    report.content.push({
+      text:"\nTotal Weight after margin - " + total_weight_without_margin
+    })
 
     report.content.push({
       text:"\nThis is a computer generated document", alignment: "center"
@@ -789,7 +818,12 @@ router.get('/slabs-margin-report', async (req, res)=>{
     report.content.push({text:"\n\Slabs Stock Details\n", style: 'header'})
     report.content.push({text: 'Unit: '+date, alignment:'right'})
     report.content.push({text: unit.unit, alignment:'right'})
-    report.content.push({style: 'table', table:{ body:[['sr. no.', 'Date', 'Block no', 'Thick ness', 'L', 'H', 'Pcs.', 'Ton', 'Sq.'+unit.unit, 'm.L','m.  H', 'L. After M.', 'W. After M.', 'sq.'+unit.unit+' after margin and Roff', 'Ton after margin & Roff', 'Shade', 'Remark']]}})
+    report.content.push({style: 'table', table:{ body:[['sr. no.', 'Date', 'Block no', 'Thick ness', 'L', 'H', 'Pcs.', 'Ton', 'Sq.'+unit.unit, 'm.L','m.  H', 'L. After M.', 'H. After M.', 'sq.'+unit.unit+' after margin and Roff', 'Ton after margin & Roff', 'Shade', 'Remark']]}})
+    
+    let total_area = 0
+    let total_area_without_margin = 0
+    let total_weight = 0
+    let total_weight_without_margin = 0
     for (let i=0; i<trades.length; i++) {
       
       var blk = await Block.findOne({block_no: trades[i].block_no});
@@ -845,6 +879,11 @@ router.get('/slabs-margin-report', async (req, res)=>{
         slbs.dim_2_m = slbs.dim_2_m*304.8
       }
 
+      total_area += 1 * ((slbs.dim_1/unit.factor)*(slbs.dim_2/unit.factor)*trades[i].sold).toFixed(3) || 0
+      total_area_without_margin += 1*((slbs.dim_1_m/unit.factor)*(slbs.dim_2_m/unit.factor)*trades[i].sold).toFixed(3) || 0
+      total_weight += 1*(slbs.dim_1*slbs.dim_2*slbs.dim_3*qry.specific_gravity*0.000000001*trades[i].sold).toFixed(3) || 0
+      total_weight_without_margin += 1*(slbs.dim_1_m*slbs.dim_2_m*slbs.dim_3*qry.specific_gravity*0.000000001*trades[i].sold).toFixed(3) || 0
+
       report.content[3].table.body.push([
         i+1,
         inv.date,
@@ -866,6 +905,18 @@ router.get('/slabs-margin-report', async (req, res)=>{
       ])
     }
     
+    report.content.push({
+      text:"\nTotal actual Weight - " + total_weight
+    })
+    report.content.push({
+      text:"\nTotal Weight after margin and R.off - " + total_weight_without_margin
+    })
+    report.content.push({
+      text:"\nTotal actual area - " + total_area
+    })
+    report.content.push({
+      text:"\nTotal area after margin and R.off - " + total_area_without_margin
+    })
 
     report.content.push({
       text:"\nThis is a computer generated document", alignment: "center"
