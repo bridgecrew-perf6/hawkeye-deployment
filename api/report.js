@@ -405,7 +405,7 @@ async function slabsReport(q) {
         all[i].left + ' / ' +all[i].no_of_slabs,
         (all[i].left*all[i].weight).toFixed(2) + ' / ' +(all[i].no_of_slabs*all[i].weight).toFixed(2),
         ((all[i].left*all[i].area)/(unit.factor*unit.factor)).toFixed(2) +' / '+((all[i].no_of_slabs*all[i].area)/(unit.factor*unit.factor)).toFixed(2),
-        all[i].left==0?'Sold': 'Available',
+        all[i].left==0?'Unavailable': 'Available',
         '    '
       ])
     }
