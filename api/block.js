@@ -44,7 +44,8 @@ router.post('/new-block', async (req, res) => {
             eway_bill_no:r.eway_bill_no,
             company:r.company,
             unit:r.unit,
-            transportation_cost:r.transportation_cost
+            transportation_cost:r.transportation_cost,
+            layer_type: r.layer_type
         });
         await Block.updateOne({ block_no: r.block_no },
             {$push: { yard_history: {to_yard:r.yard, transportation_cost: r.transportation_cost, date: r.date}}})
@@ -82,7 +83,9 @@ router.post('/edit-block', async (req, res) => {
             'royalty_no':r.c.royalty_no,
             'eway_bill_no':r.c.eway_bill_no,
             "company":r.c.company,
-            'unit':r.c.unit
+            'unit':r.c.unit,
+            'layer_type':r.c.layer_type
+
         }});
     
 
@@ -131,6 +134,7 @@ router.post('/get-block',  async (req, res) => {
                 b.grade = pb.grade;
                 b.company = pb.company;
                 b.unit = pb.unit;
+                b.layer_type = pb.layer_type
             }
             return res.json({ status: "ok", block: b, quarry: q, yard: y, unit: u});
         } catch(e){console.log(e)}

@@ -26,6 +26,7 @@ router.post('/get-items',  async (req, res) => {
                         doc.quarry = b.quarry
                         doc.unit = b.unit
                         doc.company = b.company
+                        doc.layer_type = b.layer_type
                     }
                     let quarry = await Quarry.findOne({quarry:doc.quarry});
                     if (quarry == null) {
@@ -53,7 +54,8 @@ router.post('/get-items',  async (req, res) => {
                              in_transit: doc.in_transit,
                              company: doc.company,
                              weight: doc.weight,
-                             cost: doc.cost + doc.transportation_cost+doc.processing_cost
+                             cost: doc.cost + doc.transportation_cost+doc.processing_cost,
+                             layer_type: doc.layer_type
                          })
                     }
                     if (doc.slabs == true) {
@@ -76,6 +78,7 @@ router.post('/get-items',  async (req, res) => {
                             in_transit: s.in_transit,
                             company: doc.company,
                             cost: s.cost + s.transportation_cost+s.processing_cost+s.polishing_cost,
+                            layer_type:doc.layer_type
                         })
                     }
                 }
@@ -113,7 +116,10 @@ router.post('/get-items',  async (req, res) => {
                     all = all.filter(a => (req.body.lt*req.body.factor*req.body.factor) >= a.area*a.left);
                 }
                 if (req.body.block_type) {
-                    all = all.filter(a => a.block_type.toLowerCase() == req.body.block_type.toLowerCase());
+                    all = all.filter(a => (a.block_type||'').toLowerCase() == req.body.block_type.toLowerCase());
+                }
+                if (req.body.layer_type) {
+                    all = all.filter(a => (a.layer_type||'').toLowerCase() == req.body.layer_type.toLowerCase());
                 }
                 // dim filters
                 if (req.body.l_gt) {
@@ -146,12 +152,14 @@ router.post('/get-items',  async (req, res) => {
                 let total_slabs_area = 0
                 let total_block_weight = 0
                 let total_cost = 0
+                let total_slabs_area_after_minor = 0
                 no_of_items = all.length
                 for (let i=0; i<all.length; i++) {
                     if (all[i].slabs) {
                         // console.log((all[i].dim_1 * all[i].dim_2 * all[i].left)/(304.8*304.8))
                         total_slabs_area += all[i].dim_1 * all[i].dim_2 * all[i].left
                         total_cost += all[i].slabs ? all[i].cost*all[i].left : all[i].cost
+                        total_slabs_area_after_minor += ((all[i].dim_1*1)-76.2) * ((all[i].dim_2*1)-50.8) * all[i].left
                     } else {
                         if (all[i].weight*1) {
                             total_block_weight += all[i].weight
@@ -186,7 +194,8 @@ router.post('/get-items',  async (req, res) => {
                 return res.json({ status: "ok", data: selected, max_page: max_page, page: page, no_of_items: no_of_items,
                  total_slabs_area: total_slabs_area,
                  total_block_weight: total_block_weight,
-                 total_cost: total_cost});
+                 total_cost: total_cost,
+                 total_slabs_area_after_minor: total_slabs_area_after_minor});
             // }
             // catch {
             //     return res.json({ status: "failed" });

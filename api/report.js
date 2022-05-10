@@ -60,6 +60,7 @@ async function blockReport(q) {
                   doc.company = b.company
                   doc.grade = b.grade
                   doc.shade = b.shade
+                  doc.layer_type = b.layer_type
               }
               let quarry = await Quarry.findOne({quarry:doc.quarry});
               if (quarry == null) {
@@ -68,29 +69,33 @@ async function blockReport(q) {
                   };
               }
               let unit = await Unit.findOne({unit: doc.unit})
-              if (doc.slabs == false) {
-                  all.push({
-                        block_no: doc.block_no, 
-                      slabs: false, 
-                      left: 1 - (doc.sold + doc.reserved),
-                        block_type: quarry.block_type, 
-                        shade: doc.shade,
-                        grade: doc.grade,
-                        date: doc.date, 
-                        dim_1:  doc.dim_1, 
-                        dim_2: doc.dim_2,
-                        dim_3: doc.dim_3,
-                        yard: doc.yard,
-                        is_child: doc.is_child,
-                        has_children: doc.has_children,
-                        unit: unit?unit.unit:'',
-                        area: (doc.dim_1)*doc.dim_2,
-                        in_transit: doc.in_transit,
-                        company: doc.company,
-                        weight: doc.weight,
-                        cost: doc.cost + doc.transportation_cost+doc.processing_cost
-                    })
+              if (doc.slabs) {
+                let s = await Slabs.findOne({block_no: doc.block_no})
+                doc.yard = s.yard
               }
+              all.push({
+                    block_no: doc.block_no, 
+                    slabs: doc.slabs, 
+                    left: 1 - (doc.sold + doc.reserved),
+                    block_type: quarry.block_type, 
+                    shade: doc.shade,
+                    grade: doc.grade,
+                    date: doc.date, 
+                    dim_1:  doc.dim_1, 
+                    dim_2: doc.dim_2,
+                    dim_3: doc.dim_3,
+                    yard: doc.yard,
+                    is_child: doc.is_child,
+                    has_children: doc.has_children,
+                    unit: unit?unit.unit:'',
+                    area: (doc.dim_1)*doc.dim_2,
+                    in_transit: doc.in_transit,
+                    company: doc.company,
+                    weight: doc.weight,
+                    cost: doc.cost + doc.transportation_cost+doc.processing_cost,
+                    layer_type: doc.layer_type
+                })
+              
           }
           
           if (q.yard) {
@@ -113,7 +118,9 @@ async function blockReport(q) {
           if (q.block_type) {
               all = all.filter(a => a.block_type.toLowerCase() == q.block_type.toLowerCase());
           }
-          
+          if (q.layer_type) {
+            all = all.filter(a => a.layer_type.toLowerCase() == q.layer_type.toLowerCase());
+          }
           // dim filters
           if (q.l_gt) {
             all = all.filter(a => (q.l_gt*q.factor) <= a.dim_1);
@@ -176,34 +183,36 @@ async function blockReport(q) {
     +'Yard: '+ q.yard 
     +' , Availability: '+ q.fa
     +' ,Type:'+ q.block_type 
+    +' ,Layer:'+ q.layer_type 
     +' , Area: '+ q.gt +'-' + q.lt
     +' , L: '+ q.l_gt +'-' + q.l_lt
     +' , H: '+ q.h_gt +'-' + q.h_lt
     +' , W: '+ q.w_gt +'-' + q.w_lt
     +' , Date: '+ q.g_date +'-' + q.l_date
   })
-  report.content.push({style: 'table', table:{body:[['Sr.no.', 'Date', 'Block No.', 'L', 'H', 'W', 'CBM', 'TON', 'Type', 'Status', 'Yard', 'Remark']]}})
+  report.content.push({style: 'table', table:{body:[['Sr.no.', 'Date', 'Block No.', 'L', 'H', 'W', 'CBM', 'TON', 'Type', 'Layer', 'Status', 'Yard', 'Remark']]}})
   let total_weight = 0
   for (let i=0; i<all.length; i++) {
     total_weight += 1* all[i].weight.toFixed(2)
     report.content[3].table.body.push([
       i+1,
-      all[i].date,
-      all[i].is_child?all[i].block_no.split('zzz000')[0]+' - '+((all[i].block_no.split('zzz000')[1])) : all[i].block_no,
-      (all[i].dim_1/unit.factor).toFixed(2),
-      (all[i].dim_2/unit.factor).toFixed(2),
-      (all[i].dim_3/unit.factor).toFixed(2),
-      (all[i].dim_1 * all[i].dim_2 * all[i].dim_3*0.000000001).toFixed(2),
-      all[i].weight.toFixed(2),
-      all[i].block_type,
-      all[i].left>0?'Available':'Sold',
-      all[i].yard,
+      all[i].date||'',
+      (all[i].is_child?all[i].block_no.split('zzz000')[0]+' - '+((all[i].block_no.split('zzz000')[1])) : all[i].block_no)||'',
+      (all[i].dim_1/unit.factor).toFixed(2)||'',
+      (all[i].dim_2/unit.factor).toFixed(2)||'',
+      (all[i].dim_3/unit.factor).toFixed(2)||'',
+      (all[i].dim_1 * all[i].dim_2 * all[i].dim_3*0.000000001).toFixed(2)||'',
+      (all[i].weight.toFixed(2))||'',
+      all[i].block_type||'',
+      all[i].layer_type||'',
+      (all[i].slabs?'Processed':(all[i].left>0?'Available':'Sold'))||'',
+      all[i].yard||'',
       '       '
 
     ])
   }
   report.content.push({
-    text:"\nTotal actual Weight(TON) - " + total_weight.toFixed(2)
+    text:"\nTotal actual Weight(TON) - " + total_weight.toFixed(2)||''
   })
   return report
 }
@@ -286,7 +295,9 @@ async function slabsReport(q) {
                         in_transit: s.in_transit,
                         company: doc.company,
                         cost: s.cost + s.transportation_cost+s.processing_cost+s.polishing_cost,
-                        weight: (s.dim_1 * s.dim_2 * s.dim_3 * quarry.specific_gravity * 0.000000001)
+                        weight: (s.dim_1 * s.dim_2 * s.dim_3 * quarry.specific_gravity * 0.000000001),
+                        weight_after: ((s.dim_1-76.2) * (s.dim_2-50.8) * s.dim_3 * quarry.specific_gravity * 0.000000001),
+                        area_after: (s.dim_1-76.2) * (s.dim_2-50.8)
                     })
                 }
             }
@@ -317,6 +328,9 @@ async function slabsReport(q) {
             if (q.block_type) {
                 all = all.filter(a => a.block_type.toLowerCase() == q.block_type.toLowerCase());
             }
+            if (q.layer_type) {
+              all = all.filter(a => a.layer_type.toLowerCase() == q.layer_type.toLowerCase());
+          }
             // dim filters
             if (q.l_gt) {
                 all = all.filter(a => (q.l_gt*q.factor) <= a.dim_1);
@@ -379,22 +393,33 @@ async function slabsReport(q) {
       +'Yard: '+ q.yard 
       +' , Availability: '+ q.fa
       +' ,Type:'+ q.block_type 
+      +' ,Layer:'+ q.layer_type
       +' , Area: '+ q.gt +'-' + q.lt
       +' , L: '+ q.l_gt +'-' + q.l_lt
       +' , H: '+ q.h_gt +'-' + q.h_lt
       +' , Thickness: '+ q.w_gt +'-' + q.w_lt
       +' , Date: '+ q.g_date +'-' + q.l_date
     })
-    report.content.push({style: 'table', table:{widths: ['auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 60], body:[['Sr.no.', 'Date', 'Block No.', 'Thickness', 'L', 'H', 'Pcs.', 'TON', 'Sq.'+unit.unit, 'Status', 'Remark']]}})
+    report.content.push({style: 'table', table:{widths: ['auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto','auto', 'auto', 'auto', 'auto', 'auto', 60], body:[['Sr.no.', 'Date', 'Block No.', 'Thickness', 'L', 'H', 'Pcs.','Margin L(inch)','Margin H(inch)', 'TON', 'Sq.'+unit.unit,'Ton after margin', 'Sq.'+unit.unit+' after margin', 'Status', 'Remark']]}})
     let total_weight = 0
     let total_left_weight = 0
     let total_area = 0
     let total_left_area = 0
+    let total_weight_after_margin = 0
+    let total_left_weight_after_margin = 0
+    let total_area_after_margin = 0
+    let total_left_area_after_margin = 0
     for (let i=0; i<all.length; i++) {
       total_weight += 1*(all[i].no_of_slabs*all[i].weight).toFixed(2) || 0
       total_left_weight += 1*(all[i].left*all[i].weight).toFixed(2) || 0
       total_area += 1*((all[i].no_of_slabs*all[i].area)/(unit.factor*unit.factor)).toFixed(2) || 0
       total_left_area += 1*((all[i].left*all[i].area)/(unit.factor*unit.factor)).toFixed(2) || 0
+
+      total_weight_after_margin += 1*(all[i].no_of_slabs*all[i].weight_after).toFixed(2) || 0
+      total_left_weight_after_margin += 1*(all[i].left*all[i].weight_after).toFixed(2) || 0
+      total_area_after_margin += 1*((all[i].no_of_slabs*all[i].area_after)/(unit.factor*unit.factor)).toFixed(2) || 0
+      total_left_area_after_margin += 1*((all[i].left*all[i].area_after)/(unit.factor*unit.factor)).toFixed(2) || 0
+
       report.content[3].table.body.push([
         i+1,
         all[i].date,
@@ -403,8 +428,12 @@ async function slabsReport(q) {
         (all[i].dim_1/unit.factor).toFixed(2),
         (all[i].dim_2/unit.factor).toFixed(2),
         all[i].left + ' / ' +all[i].no_of_slabs,
+        '3',
+        '2',
         (all[i].left*all[i].weight).toFixed(2) + ' / ' +(all[i].no_of_slabs*all[i].weight).toFixed(2),
         ((all[i].left*all[i].area)/(unit.factor*unit.factor)).toFixed(2) +' / '+((all[i].no_of_slabs*all[i].area)/(unit.factor*unit.factor)).toFixed(2),
+        (all[i].left*all[i].weight_after).toFixed(2) + ' / ' +(all[i].no_of_slabs*all[i].weight_after).toFixed(2),
+        ((all[i].left*all[i].area_after)/(unit.factor*unit.factor)).toFixed(2) +' / '+((all[i].no_of_slabs*all[i].area_after)/(unit.factor*unit.factor)).toFixed(2),
         all[i].left==0?'Unavailable': 'Available',
         '    '
       ])
@@ -413,6 +442,11 @@ async function slabsReport(q) {
     report.content.push({text: "Total weight of left stock(ton) - "+total_left_weight.toFixed(3)})
     report.content.push({text: "Total area(sq."+unit.unit+") - "+total_area.toFixed(3)})
     report.content.push({text: "Total area of left stock(sq."+unit.unit+") - "+total_left_area.toFixed(3)})
+
+    report.content.push({text: "Total weight after margin(ton) - "+total_weight_after_margin.toFixed(3)})
+    report.content.push({text: "Total weight of left stock after margin(ton) - "+total_left_weight_after_margin.toFixed(3)})
+    report.content.push({text: "Total area(sq."+unit.unit+")  after margin - "+total_area_after_margin.toFixed(3)})
+    report.content.push({text: "Total area of left stock(sq."+unit.unit+")  after margin - "+total_left_area_after_margin.toFixed(3)})
     return report
 }
 

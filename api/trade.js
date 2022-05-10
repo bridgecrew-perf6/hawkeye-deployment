@@ -165,8 +165,8 @@ router.post('/sell-trade',  async (req, res) => {
                 reserved: 0,
                 cost: r.cost,
                 qty: qty,
-                r_dim_1: r.r_dim_1,
-                r_dim_2: r.r_dim_2,
+                r_dim_1: r.r_dim_1+76.2,
+                r_dim_2: r.r_dim_2+50.8,
                 r_dim_3: r.r_dim_3,
                 round_off: r.round_off,
                 date: r.date

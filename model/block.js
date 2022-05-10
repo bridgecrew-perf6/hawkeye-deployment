@@ -32,7 +32,8 @@ const blockSchema = new mongoose.Schema({
     company:{type:String, default:''},
     unit:{type:String, default:''},
     processing_cost:{type:Number, default:0},
-    processor:{type:String, default:''}
+    processor:{type:String, default:''},
+    layer_type:{type:String}
     
 }, {collection: 'block'});
 
