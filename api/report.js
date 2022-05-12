@@ -116,10 +116,10 @@ async function blockReport(q) {
               all = all.filter(a => (q.lt*q.factor*q.factor) >= a.area*a.left);
           }
           if (q.block_type) {
-              all = all.filter(a => a.block_type.toLowerCase() == q.block_type.toLowerCase());
+              all = all.filter(a => (a.block_type||'').toLowerCase() == q.block_type.toLowerCase());
           }
           if (q.layer_type) {
-            all = all.filter(a => a.layer_type.toLowerCase() == q.layer_type.toLowerCase());
+            all = all.filter(a => (a.layer_type||'').toLowerCase() == q.layer_type.toLowerCase());
           }
           // dim filters
           if (q.l_gt) {
