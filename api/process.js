@@ -59,6 +59,7 @@ router.post('/break-block',  async (req, res) => {
                             processing_cost:r.broken_blocks[i].processing_cost,
                             yard: r.broken_blocks[i].processor,
                             weight: r.broken_blocks[i].dim_1*r.broken_blocks[i].dim_2*r.broken_blocks[i].dim_3*qry.specific_gravity*0.000000001,
+                            transportation_cost: (vol_arr[i]/vol_sum)*blk.transportation_cost,
                             cost: (vol_arr[i]/vol_sum)*block_cost,
                             yard_history: [{to_yard: r.broken_blocks[i].processor, date:"", transportation_cost:0}]
                         });

@@ -92,7 +92,10 @@ async function blockReport(q) {
                     in_transit: doc.in_transit,
                     company: doc.company,
                     weight: doc.weight,
-                    cost: doc.cost + doc.transportation_cost+doc.processing_cost,
+                    cost: doc.cost,
+                    total: doc.cost + doc.transportation_cost+doc.processing_cost,
+                    transportation_cost: doc.transportation_cost,
+                    processing_cost: doc.processing_cost,
                     layer_type: doc.layer_type
                 })
               
@@ -190,10 +193,18 @@ async function blockReport(q) {
     +' , W: '+ q.w_gt +'-' + q.w_lt
     +' , Date: '+ q.g_date +'-' + q.l_date
   })
-  report.content.push({style: 'table', table:{body:[['Sr.no.', 'Date', 'Block No.', 'L', 'H', 'W', 'CBM', 'TON', 'Type', 'Layer', 'Status', 'Yard', 'Remark']]}})
+  report.content.push({style: 'table', table:{body:[['Sr.no.', 'Date', 'Block No.', 'L', 'H', 'W', 'CBM', 'TON', 'Type', 'Layer', 'Status', 'Yard', 'Purchase Cost', 'Trans. Cost', 'Total cost', 'Remark']]}})
   let total_weight = 0
+  let block_weight = 0
+  let processed_weight = 0
   for (let i=0; i<all.length; i++) {
     total_weight += 1* all[i].weight.toFixed(2)
+    if(all[i].left>0){
+      block_weight += 1* all[i].weight.toFixed(2)
+    }
+    if(all[i].slabs){
+      processed_weight += 1* all[i].weight.toFixed(2)
+    }
     report.content[3].table.body.push([
       i+1,
       all[i].date||'',
@@ -207,12 +218,24 @@ async function blockReport(q) {
       all[i].layer_type||'',
       (all[i].slabs?'Processed':(all[i].left>0?'Available':'Sold'))||'',
       all[i].yard||'',
+      ((all[i].cost)/all[i].weight).toFixed(2)||'',
+      ((all[i].transportation_cost)/all[i].weight).toFixed(2)||'',
+      ((all[i].total)/all[i].weight).toFixed(2)||'',
       '       '
 
     ])
   }
   report.content.push({
-    text:"\nTotal actual Weight(TON) - " + total_weight.toFixed(2)||''
+    text:"\nTotal Weight(TON) - " + total_weight.toFixed(2)||''
+  })
+  report.content.push({
+    text:"\nTotal Weight of Available Blocks(TON) - " + (block_weight.toFixed(2)-processed_weight.toFixed(2)).toFixed(2)||''
+  })
+  report.content.push({
+    text:"\nTotal Weight of Sold Blocks(TON) - " + (total_weight.toFixed(2)-block_weight.toFixed(2)).toFixed(2)||''
+  })
+  report.content.push({
+    text:"\nTotal Weight of Processed Blocks(TON) - " + processed_weight.toFixed(2)||''
   })
   return report
 }
@@ -739,7 +762,7 @@ router.get('/block-margin-report', async (req, res)=>{
     
     let date = new Date().toLocaleString();
     let unit = await Unit.findOne({unit: req.query.unit})
-    report.content.push({text:"\n\Block Stock Details\n", style: 'header'})
+    report.content.push({text:"\n\Sold Block Details\n", style: 'header'})
     report.content.push({text: 'Date: '+date, alignment:'right'})
     report.content.push({text: "Unit: "+unit.unit, alignment:'right'})
     report.content.push({style: 'table', table:{ body:[['sr. no.', 'Date', 'Block no', 'L', 'H', 'W', 'Ton','m. L','m. H', 'Weight after margin', 'Remark']]}})
@@ -849,7 +872,7 @@ router.get('/slabs-margin-report', async (req, res)=>{
     
     let date = new Date().toLocaleString();
     let unit = await Unit.findOne({unit: req.query.unit})
-    report.content.push({text:"\n\Slabs Stock Details\n", style: 'header'})
+    report.content.push({text:"\n\Sold Slabs Details\n", style: 'header'})
     report.content.push({text: 'Unit: '+date, alignment:'right'})
     report.content.push({text: unit.unit, alignment:'right'})
     report.content.push({style: 'table', table:{ body:[['sr. no.', 'Date', 'Block no', 'Thick ness', 'L', 'H', 'Pcs.', 'Ton', 'Sq.'+unit.unit, 'm.L','m.  H', 'L. After M.', 'H. After M.', 'sq.'+unit.unit+' after margin and Roff', 'Ton after margin & Roff', 'Shade', 'Remark']]}})
