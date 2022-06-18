@@ -220,7 +220,7 @@ async function blockReport(q) {
       all[i].yard||'',
       ((all[i].cost)/all[i].weight).toFixed(2)||'',
       ((all[i].transportation_cost)/all[i].weight).toFixed(2)||'',
-      ((all[i].total)/all[i].weight).toFixed(2)||'',
+      ((all[i].total)).toFixed(2)||'',
       '       '
 
     ])
@@ -318,7 +318,8 @@ async function slabsReport(q) {
                         in_transit: s.in_transit,
                         company: doc.company,
                         cost: s.cost + s.transportation_cost+s.processing_cost+s.polishing_cost,
-                        weight: (s.dim_1 * s.dim_2 * s.dim_3 * quarry.specific_gravity * 0.000000001),
+                        weight: doc.weight,
+                        weight1: (s.dim_1 * s.dim_2 * s.dim_3 * quarry.specific_gravity * 0.000000001),
                         weight_after: ((s.dim_1-76.2) * (s.dim_2-50.8) * s.dim_3 * quarry.specific_gravity * 0.000000001),
                         area_after: (s.dim_1-76.2) * (s.dim_2-50.8)
                     })
@@ -423,7 +424,7 @@ async function slabsReport(q) {
       +' , Thickness: '+ q.w_gt +'-' + q.w_lt
       +' , Date: '+ q.g_date +'-' + q.l_date
     })
-    report.content.push({style: 'table', table:{widths: ['auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto','auto', 'auto', 'auto', 'auto', 'auto', 60], body:[['Sr.no.', 'Date', 'Block No.', 'Thickness', 'L', 'H', 'Pcs.','Margin L(inch)','Margin H(inch)', 'TON', 'Sq.'+unit.unit,'Ton after margin', 'Sq.'+unit.unit+' after margin', 'Status', 'Remark']]}})
+    report.content.push({style: 'table', table:{widths: ['auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto','auto', 'auto', 'auto', 'auto', 'auto', 60], body:[['Sr.no.', 'Date', 'Block No.', 'Thickness', 'L', 'H', 'Pcs.','Margin L(inch)','Margin H(inch)', 'TON', 'Sq.'+unit.unit,/*'Ton after margin',*/ 'Sq.'+unit.unit+' after margin', 'Status', 'Remark']]}})
     let total_weight = 0
     let total_left_weight = 0
     let total_area = 0
@@ -453,9 +454,9 @@ async function slabsReport(q) {
         all[i].left + ' / ' +all[i].no_of_slabs,
         '3',
         '2',
-        (all[i].left*all[i].weight).toFixed(2) + ' / ' +(all[i].no_of_slabs*all[i].weight).toFixed(2),
+        /*(all[i].left*all[i].weight).toFixed(2) + ' / ' +(all[i].no_of_slabs*all[i].weight).toFixed(2),*/ (all[i].weight.toFixed(2))||'',
         ((all[i].left*all[i].area)/(unit.factor*unit.factor)).toFixed(2) +' / '+((all[i].no_of_slabs*all[i].area)/(unit.factor*unit.factor)).toFixed(2),
-        (all[i].left*all[i].weight_after).toFixed(2) + ' / ' +(all[i].no_of_slabs*all[i].weight_after).toFixed(2),
+        /*(all[i].left*all[i].weight_after).toFixed(2) + ' / ' +(all[i].no_of_slabs*all[i].weight_after).toFixed(2),*/
         ((all[i].left*all[i].area_after)/(unit.factor*unit.factor)).toFixed(2) +' / '+((all[i].no_of_slabs*all[i].area_after)/(unit.factor*unit.factor)).toFixed(2),
         all[i].left==0?'Unavailable': 'Available',
         '    '
